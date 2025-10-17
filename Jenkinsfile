@@ -20,6 +20,8 @@ pipeline {
                 extensions: [[$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false]],
                 userRemoteConfigs: [[url: 'https://github.com/grevyrincon/python-app.git']]]
             )
+            env.IMAGE_TAG = sh(script: "git describe --tags --always", returnStdout: true).trim()
+            echo "Using IMAGE_TAG: ${env.IMAGE_TAG}"
         }
       }
     }
