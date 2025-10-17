@@ -10,6 +10,19 @@ pipeline {
   }
 
   stages {
+    stage('Checkout') {
+      steps {
+        script {
+            // Full clone with tags
+            checkout([$class: 'GitSCM',
+                branches: [[name: "*/${BRANCH_NAME}"]],
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [[$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false]],
+                userRemoteConfigs: [[url: 'https://github.com/grevyrincon/python-app.git']]]
+            )
+        }
+      }
+    }
     stage('Load Environment from Terraform State') {
       steps {
         withAWS(region: "${AWS_REGION}", credentials: "${SECRET_NAME}") {
@@ -20,16 +33,11 @@ pipeline {
               // Read the state file JSON
               def tfStateText = readFile('terraform.tfstate')
               def tfState = readJSON text: tfStateText
-
-              // Extract outputs
               def outputs = tfState.outputs
 
               env.ECR_REGISTRY = outputs.ecr_repository_url.value
               env.AWS_REGION = outputs.aws_region.value
 
-              def tag = sh(script: "git fetch --tags && git describe --tags --abbrev=0", returnStdout: true).trim()
-              env.IMAGE_TAG = tag
-              echo "Docker image will be tagged with: ${env.IMAGE_TAG}" 
           }
         }
       }
